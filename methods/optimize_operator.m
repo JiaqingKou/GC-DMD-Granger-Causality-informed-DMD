@@ -1,17 +1,12 @@
-function varargout = optimize_operator(mode,varargin)
-%OPTIMIZE_OPERATOR Unified FISTA solver and validation-based lambda search.
-%   [A,info] = optimize_operator('solve',data,lambda,W,opts)
-%   R = optimize_operator('gc_path',train,val,W,grid,A_dmd,A_true,tol,opts,Sig,settings)
-%   [lambda,A,rmse] = optimize_operator('validation',train,val,W,grid,opts)
-% Modes share the SAME original numerical routines; GC weights are refreshed
-% only for the gc_path final refit (and optional validation gc_settings).
+function varargout=optimize_operator(mode,varargin)
+% Shared weighted-L1 FISTA and validation; no case-specific solvers.
 switch lower(mode)
     case 'solve'
-        [varargout{1:nargout}] = solve_one(varargin{:});
-    case 'gc_path'
-        [varargout{1:nargout}] = scan_gc(varargin{:});
+        [varargout{1:nargout}]=solve_one(varargin{:});
     case 'validation'
-        [varargout{1:nargout}] = scan_validation(varargin{:});
+        [varargout{1:nargout}]=scan_validation(varargin{:});
+    case 'gc_path'
+        [varargout{1:nargout}]=scan_gc(varargin{:});
     otherwise
         error('Unknown optimization mode: %s',mode);
 end
@@ -233,32 +228,16 @@ end
 end
 
 
-function [best_lambda, best_A, val_rmse] = scan_validation( ...
-    dataTrain, dataVal, W, lambda_grid, fista_opts, gc_settings)
-%SELECT_LAMBDA_VALIDATION Select lambda using chronological validation.
-%
-% Selection metric: one-step RMSE on the validation sequence.
-
-nL = numel(lambda_grid);
-val_rmse = zeros(nL,1);
-Acell = cell(nL,1);
-
-for k = 1:nL
-    lam = lambda_grid(k);
-
-    [A,~] = solve_one(dataTrain, lam, W, fista_opts);
-
-    val_rmse(k) = one_step_rmse(A, dataVal);
-    Acell{k} = A;
+function [best_lambda,best_A,val_rmse]=scan_validation(train,val,W,grid,opts,gc_settings)
+val_rmse=zeros(numel(grid),1);
+for k=1:numel(grid)
+    A=solve_one(train,grid(k),W,opts);
+    val_rmse(k)=one_step_rmse(A,val);
 end
-
-[~,idx] = min(val_rmse);
-
-best_lambda = lambda_grid(idx);
-% Optional GC refresh; Oracle weights remain prescribed.
+[~,idx]=min(val_rmse);
+best_lambda=grid(idx);
 if nargin>=6 && ~isempty(gc_settings)
- W=build_gc_weights([dataTrain;dataVal],gc_settings);
+    W=build_gc_weights([train;val],gc_settings);
 end
-[best_A,~] = solve_one([dataTrain;dataVal],best_lambda,W,fista_opts);
-
+best_A=solve_one([train;val],best_lambda,W,opts);
 end

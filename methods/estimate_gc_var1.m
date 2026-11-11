@@ -14,32 +14,15 @@ function [GC_raw, Pval, Sig, C, info] = estimate_gc_var1(data, varargin)
 %   F_GC(j->i) = log( var(e_red) / var(e_full) )
 %
 % Significance:
-%   standard nested linear-model F test, followed by optional BH-FDR
+%   standard nested linear-model F test, followed by BH-FDR
 %   correction across all off-diagonal directed edges.
 %
-% Options:
-%   'alpha'            : raw per-test level, default 0.05
-%   'multiple_testing' : 'bh-fdr' (default) or 'none'
-%   'fdr_q'            : BH target FDR, default = alpha
-%   'norm_mode'        : 'rowsum' (default) or 'rowmax'
-%   'intercept'        : true (default); include a constant in both regressions
+% Manuscript-fixed choices: intercept in both regressions, BH-FDR q=0.05,
+% row-sum normalization, and exclusion of self-links.
 
-p = inputParser;
-addRequired(p,'data');
-addParameter(p,'alpha',0.05);
-addParameter(p,'multiple_testing','bh-fdr');
-addParameter(p,'fdr_q',[]);
-addParameter(p,'norm_mode','rowsum');
-addParameter(p,'intercept',true);
-parse(p,data,varargin{:});
-
-alpha = p.Results.alpha;
-mt_mode = lower(string(p.Results.multiple_testing));
-fdr_q = p.Results.fdr_q;
-if isempty(fdr_q), fdr_q = alpha; end
-norm_mode = lower(p.Results.norm_mode);
-use_intercept = logical(p.Results.intercept);
-
+% varargin is accepted for compatibility with existing main scripts;
+% all manuscript cases use the same fixed BH-FDR/rowsum/intercept method.
+alpha = 0.05;
 [N,r] = size(data);
 if N <= r + 3
     error('Too few samples for full VAR(1) with intercept: N must exceed r+3.');
@@ -51,11 +34,7 @@ T = size(X,1);
 
 % Design matrix: intercept + r lag-one predictors.
 % Do not penalize/remove the intercept when testing j -> i.
-if use_intercept
-    X_full = [ones(T,1), X];
-else
-    X_full = X;
-end
+X_full = [ones(T,1), X];
 B_full = X_full \ Y;
 Yhat_full = X_full * B_full;
 E_full = Y - Yhat_full;
@@ -66,7 +45,7 @@ GC_raw = zeros(r);
 Pval   = ones(r);
 Sig_raw = false(r);
 
-K_full = r + double(use_intercept); % includes constant coefficient
+K_full = r + 1; % includes constant coefficient
 df2 = T - K_full;
 
 for i = 1:r
@@ -76,9 +55,7 @@ for i = 1:r
 
         keep = true(1,r); keep(j) = false;
         Xred = X(:,keep);
-        if use_intercept
-            Xred = [ones(T,1), Xred]; % same intercept in reduced model
-        end
+        Xred = [ones(T,1), Xred]; % same intercept in reduced model
         b_red = Xred \ y;
         e_red = y - Xred*b_red;
 
@@ -102,57 +79,32 @@ for i = 1:r
     end
 end
 
-% Multiple-testing correction over the complete directed off-diagonal family.
+% Paper method: BH-FDR (q=0.05) on all directed off-diagonal tests.
 offdiag = ~eye(r);
-switch mt_mode
-    case {"bh-fdr","bh","fdr"}
-        [Sig, pcrit] = bh_fdr_mask(Pval, fdr_q, offdiag);
-    case {"none","raw"}
-        Sig = Sig_raw;
-        pcrit = alpha;
-    otherwise
-        error('Unknown multiple_testing mode: %s', mt_mode);
-end
+[Sig, pcrit] = bh_fdr_mask(Pval, 0.05, offdiag);
 Sig(1:r+1:end) = false;
-
 GC_sig = GC_raw .* Sig;
 GC_sig(1:r+1:end) = 0;
 
-C = zeros(r);
-switch norm_mode
-    case 'rowsum'
-        for i = 1:r
-            s = sum(GC_sig(i,:));
-            if s > 0, C(i,:) = GC_sig(i,:) / s; end
-        end
-    case 'rowmax'
-        for i = 1:r
-            m = max(GC_sig(i,:));
-            if m > 0, C(i,:) = GC_sig(i,:) / m; end
-        end
-    otherwise
-        error('Unknown norm_mode: %s', norm_mode);
-end
+% Paper method: row-sum normalization; zero rows remain zero.
+row_sum = sum(GC_sig,2);
+row_sum(row_sum==0) = 1;
+C = bsxfun(@rdivide,GC_sig,row_sum);
 C(1:r+1:end) = 0;
 
 info.B_full = B_full;
-info.intercept = use_intercept;
-if use_intercept
-    info.b_full = B_full(1,:); % estimated intercept for each target
-    info.A_full = B_full(2:end,:).'; % rows: effects, columns: causes
-else
-    info.b_full = zeros(1,r);
-    info.A_full = B_full.';
-end
+info.intercept = true;
+info.b_full = B_full(1,:);
+info.A_full = B_full(2:end,:).';
 info.E_full = E_full;
 info.var_full = var_full;
 info.GC_sig = GC_sig;
 info.Sig_raw = Sig_raw;
 info.alpha = alpha;
-info.multiple_testing = char(mt_mode);
-info.fdr_q = fdr_q;
+info.multiple_testing = 'bh-fdr';
+info.fdr_q = 0.05;
 info.pcrit = pcrit;
-info.norm_mode = norm_mode;
+info.norm_mode = 'rowsum';
 info.T = T;
 info.df2 = df2;
 end

@@ -1,52 +1,44 @@
-# GC-DMD — VAR(1) benchmark, paper Figures 1–4
+# GC-DMD — MATLAB manuscript reproduction
 
-Run `main` from MATLAB. The script reproduces the original **separate** figure windows.
+## Run and figure mapping
 
-- `main.m`: original experiment parameters, data split, GC, lambda sweep, and figure calls.
-- `methods/`: DMD, GC-DMD, Oracle and original shared regularized solver (no standalone L1-DMD experiment).
-- `figures/plot_fig1.m` ... `plot_fig4.m`: extracted original manuscript plotting code.
-- `figures/finalize_paper_figures.m`: **essential original post-plot pass**. Applies mathematical italics, label styling, and endpoint ticks. This step was missing in the previous GitHub packages.
-- `utils/`: data generator, diagnostics and original color/style helpers.
+|Entry|Case|Manuscript figures|Outputs|
+|-|-|-|-|
+|`main.m`|VAR(1)|Figures 1–4|EPS|
+|`main\_2.m`|Cavity SVD/POD comparison|Figure 5|EPS / PNG|
+|`main\_3.m`|Cavity Re=13000|Figures 6–7|EPS / PNG|
+|`main\_4.m`|Cavity Re=19000|Figures 8–12|EPS / PNG|
+|`main\_5.m`|Cavity Re=30000|Appendix B1–B2|EPS / PNG|
+|`main\_6.m`|Mach 0.9 jet|Figures 13–16|EPS / PNG|
+|`main\_7.m`|L1-DMD benchmark|Appendix A1–A2|EPS|
 
-**Important:** Do not remove the `finalize_paper_figures(...)` call at the end of `main.m`. The original figure routines deliberately defer some math typography to this final pass.
+Run **one** `main\*.m` script at a time from MATLAB. Every script initializes its own paths and saves only its manuscript figures to `results/`. Re-running one main replaces only that main's figures, independently of execution order.
 
-This package was inspected statically but has not been executed in MATLAB here.
+## Directory structure
 
-## Unified optimization
-`methods/optimize_operator.m` consolidates the original FISTA solver, GC-DMD regularization path and Oracle validation search. Its modes are `solve`, `gc_path`, and `validation`. The original numerical routines and plotting files are otherwise unchanged.
+* `methods/`: numerical methods (snapshot decomposition, DMD, conditional GC, FISTA/weighted L1, modal analysis).
+* `utils/`: dataset loading, case-level diagnostics, plotting styles, and output-directory management.
+* `figures/`: original manuscript figure drawing functions, grouped by manuscript figure number; a function may create several MATLAB windows.
+* `data/`: input MAT files; `operator\_bank\_20.mat` is included, large CFD datasets must be supplied separately.
+* `results/`: generated EPS and PNG images only.
 
-## GC penalty weights
-`methods/build_gc_weights.m` replaces `final_gc_weights.m` and
-`build_penalty_matrices.m`. It accepts an existing square GC matrix (no
-re-estimation) or a snapshot matrix (re-estimates GC for the final refit).
-`main.m` reuses its training GC matrix, while the optimizer re-estimates
-GC on the combined train/validation segment as before.
+## Main script reading order
 
-## GC intercept specification
-The conditional VAR(1) GC regressions include an **explicit intercept** in
-**both** the full and reduced models, controlled by `gc_intercept=true` in
-`main.m`. For target `i` and candidate driver `j`:
+`0. Settings → 1. Load snapshots → 2. Snapshot SVD/POD (when applicable) → 3. DMD → 4. GC → 5. GC-DMD → 6+. Modal analysis, forecasts, sparsity, and manuscript figures.`
 
-- Full: `x_i(t+1) = b_i + sum_k A_ik x_k(t) + e_F(t)`
-- Reduced: `x_i(t+1) = b_i^(R) + sum_(k != j) A_ik^(R) x_k(t) + e_R(t)`
+The important algorithm calls are **visible in the main scripts** rather than hidden behind an all-in-one identification wrapper. The cavity and jet cases use an explicit chronological training/validation split; final DMD and GC-DMD operators are refitted on the modeling interval. GC full/reduced regressions include an intercept; BH-FDR q=0.05; normalized GC rowsum; eta=1; diagonal coefficients are not penalized.
 
-Both are fitted independently by OLS, using **one-step** residuals.
-With `T = N_train-1` paired observations and `r` lagged variables, the
-full-model residual degrees of freedom are `df2 = T - (r+1)` and the
-nested F test has `df1 = 1`. BH-FDR is applied over `r*(r-1)` directed
-off-diagonal tests. `info.b_full` exposes the fitted full-model intercepts.
+## Numerical fidelity
 
-The snapshot demeaning in `main.m` is unchanged to preserve the original
-benchmark preprocessing. DMD and the regularized operator optimizer are
-**still fitted without an intercept**; only GC regression is changed.
-Consequently, results can differ from the prior no-intercept GC version.
+The supplied project uses `compute\_svd.m` as the naming convention for its **snapshot-correlation eigendecomposition**. This name does not imply calling MATLAB's `svd()` directly. The cavity scripts retain the original QR re-orthogonalization and truncation rules. The existing `methods/optimize\_operator.m` and the figure drawing function bodies are retained; the refactor changes only the *visibility and organization* of the identification sequence in the main scripts.
 
-The same intercept option is passed into the GC re-estimation on the
-combined training+validation segment during the final GC-DMD refit.
+The original 20-trial Appendix A experiment uses one ground-truth operator with 20 noise seeds, producing 20 separately identified operators. The code does not claim 20 distinct ground-truth systems.
 
-**Validation:** static source inspection only; MATLAB runtime not available.
+## Data files
 
+Place `Cavity13k.mat`, `Cavity19k.mat`, `Cavity30k.mat`, and `jetLES.mat` under `data/` as needed. Run a case only after its dataset is available. The package includes `operator\_bank\_20.mat` for Appendix A.
 
-## Automatic EPS figure export
+## Validation status
 
-Run `main` in MATLAB. After manuscript formatting, the script exports nine standalone vector EPS files to `results_data/eps/` using `print -depsc2 -painters` (compatible with older MATLAB releases). The original plotting functions are unchanged. Figure 1 consists of three files, Figure 2 of four files, and Figures 3 and 4 of one file each.
+Static source checks only; full MATLAB numerical and figure reproduction requires the datasets and MATLAB runtime. No image or figure body was intentionally redesigned.
+

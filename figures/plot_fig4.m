@@ -2,7 +2,7 @@ function plot_fig4(R,A_true,idx_show,support_tol)
 %PLOT_LAMBDA_COEFFICIENT_SURVIVAL Ranked coefficient distributions + recovery error.
 % Every operator is sorted independently by its own off-diagonal |A_ij|.
 if nargin<4, support_tol=1e-3; end
-C=supp_taira_colors(); r=size(A_true,1); mask=~eye(r);
+C=taira_colors(); r=size(A_true,1); mask=~eye(r);
 atrue=sort(abs(A_true(mask)),'descend');
 cols=[0 0 0; C.blue; C.orange; C.yellow; 0.38 0.52 0.70; 0.20 0.55 0.28; 0.75 0.15 0.60];
 
@@ -34,7 +34,7 @@ xlabel(ax,'p');
 ylabel(ax,'|A_{ij}^{true}|');
 title(ax,'(a) Ranked coefficient distributions');
 lg=legend(ax,leg,'Location','northeast','NumColumns',1,'AutoUpdate','off');
-supp_apply_taira_style(fig); set(ax,'YScale','log','YMinorTick','on');
+apply_taira_style(fig); set(ax,'YScale','log','YMinorTick','on');
 set(ax,'FontSize',28); set([ax.XLabel ax.YLabel],'FontSize',30);
 ax.YLabel.FontSize=28;
 ax.Units='normalized'; ax.Position=[0.20 0.16 0.75 0.76];

@@ -17,9 +17,7 @@ if q <= 0 || q >= 1
 end
 
 pv = Pval(test_mask);
-pv = pv(:);
-valid = isfinite(pv);
-pv_valid = pv(valid);
+pv_valid = pv(isfinite(pv));
 
 Sig = false(size(Pval));
 pcrit = NaN;

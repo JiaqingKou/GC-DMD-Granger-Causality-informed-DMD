@@ -87,7 +87,7 @@ switch s
  case 'N',s='$N$';
  case 'k',s='$k$';
  case '|A_{ij}^{true}|',s='$|A_{ij}^{\mathrm{true}}|$';
- case 'Gtilde_{ij}',s='$\widetilde{G}_{ij}$';
+ case 'Gtilde_ij',s='$\widetilde{G}_{ij}$';
  case 'RMSEval(A)',s='\bfRMSE_{val}(\itA\rm\bf)';
  case 'F1',s='\itF\rm\bf1';
  case 'EA',s='$\|\mathbf{A}-\mathbf{A}^{\mathrm{true}}\|_F/\|\mathbf{A}^{\mathrm{true}}\|_F$';

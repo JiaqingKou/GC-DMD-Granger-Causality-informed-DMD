@@ -8,9 +8,9 @@ for k=1:4
     imagesc(ax,ops{k}); axis(ax,'image');
     caxis(ax,[-operator_compare_clim operator_compare_clim]);
     xlabel(ax,'Source j'); ylabel(ax,'Target i');
-    colormap(fig,supp_taira_diverging(257));
+    colormap(fig,taira_diverging(257));
     cb=colorbar(ax); cb.Label.String='';
-    supp_apply_taira_style(fig);
+    apply_taira_style(fig);
     set(ax,'XTick',[1 5:5:r],'YTick',[1 5:5:r],'FontSize',36);
     set([ax.XLabel ax.YLabel],'FontSize',38);
     cb.FontSize=30; % No colorbar title: reserve the right margin for ticks.

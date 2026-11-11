@@ -6,7 +6,7 @@ x=1:numel(as);
 yyaxis(ax,'left'); hA=plot(ax,x,as,'-','Color',C.blue,'LineWidth',2.8);
 ylabel(ax,'|A_{ij}^{true}|'); ylim(ax,[0 .5]); yticks(ax,0:.1:.5);
 yyaxis(ax,'right'); hG=plot(ax,x,gc_paired,'-o','Color',C.orange,'LineWidth',2.0,'MarkerSize',3.6);
-ylabel(ax,'Gtilde_{ij}'); ylim(ax,[0 1]); yticks(ax,0:.2:1);
+ylabel(ax,'Gtilde_ij'); ylim(ax,[0 1]); yticks(ax,0:.2:1);
 xlabel(ax,'p');
 apply_taira_style(f);
 set(ax,'FontName','Times New Roman','FontSize',28,'FontWeight','bold','LineWidth',1.3);
@@ -17,7 +17,6 @@ xlim(ax,[0 400]); xticks(ax,0:50:400);
 % Separate numeric export allows assessment of GC tail against true-A rank.
 paired_table=table(x',as,gc_paired,as>true_A_tau,gc_paired>gc_tail_level, ...
  'VariableNames',{'Rank_by_true_A','Abs_true_A','Paired_GC_normalized','True_A_retained','GC_retained'});
-writetable(paired_table,fullfile(output_dir,'Fig1_paired_rank_data.csv'));
 % FIG 1C-1: true-A support, plotted as a standalone panel for manuscript insertion.
 f=figure('Color','w','Position',[100 100 720 650]); ax=axes(f);
 imagesc(ax,A_graph); axis(ax,'image'); caxis(ax,[0 1]);
