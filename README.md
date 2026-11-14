@@ -1,5 +1,8 @@
 # GC-DMD — MATLAB manuscript reproduction
 
+# Please cite this reference:
+Yihua Pan, & Jiaqing Kou. (2026). Causality-informed dynamic mode decomposition for unsteady flow analysis. arXiv preprint arXiv:2610.39522.
+
 ## Run and figure mapping
 
 |Entry|Case|Manuscript figures|Outputs|
